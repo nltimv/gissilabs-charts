@@ -290,6 +290,7 @@ spec:
             - name: ICON_REDIRECT_CODE
               value: {{ .Values.vaultwarden.icons.redirectCode | quote }}
             {{- end }}  
+            {{- toYaml .Values.env | nindent 12 }}
           ports:
             - name: http
               containerPort: 8080
