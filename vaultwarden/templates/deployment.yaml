@@ -43,6 +43,7 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
+            {{- toYaml .Values.env | nindent 12 }}
             - name: ROCKET_PORT
               value: "8080"
             - name: SIGNUPS_ALLOWED
@@ -289,8 +290,7 @@ spec:
             {{- if hasKey .Values.vaultwarden.icons "redirectCode" }}
             - name: ICON_REDIRECT_CODE
               value: {{ .Values.vaultwarden.icons.redirectCode | quote }}
-            {{- end }}  
-            {{- toYaml .Values.env | nindent 12 }}
+            {{- end }}
           ports:
             - name: http
               containerPort: 8080
