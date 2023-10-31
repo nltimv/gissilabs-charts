@@ -135,11 +135,16 @@ spec:
             {{- else }}
             - name: ENABLE_DB_WAL
               value: "false"
+            {{ if .Values.database.existingSecret }}
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
                   name: {{ if .Values.database.existingSecret }}{{ .Values.database.existingSecret }}{{else}}{{ include "vaultwarden.fullname" . }}{{end}}
                   key: database-url
+            {{- else if .Values.database.url }}
+            - name: DATABASE_URL
+              value: {{ .Values.database.url | quote }}
+            {{- end }}
             {{- end }}
             {{- if .Values.vaultwarden.domain }}
             - name: DOMAIN
