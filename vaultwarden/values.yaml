@@ -9,6 +9,8 @@ database:
   #url: ""
   ## Use existing secret for database URL, key 'database-url'.
   #existingSecret:
+  ## Use a different key for the existing secret.
+  #existingSecretKey:
   ## Set the size of the database connection pool.
   #maxConnections: 10
   ## Connection retries during startup, 0 for infinite. 1 second between retries.
@@ -42,9 +44,6 @@ vaultwarden:
   showPasswordHint: false
   ## Default organization name in invitation e-mails that are not coming from a specific organization.
   #defaultInviteName: ""
-  # Enable Websockets for notification. https://github.com/dani-garcia/vaultwarden/wiki/Enabling-WebSocket-notifications
-  # Redirect HTTP path "/notifications/hub" to port 3012. Ingress/IngressRoute controllers are automatically configured.
-  enableWebsockets: true
   # Enable Web Vault (static content). https://github.com/dani-garcia/vaultwarden/wiki/Disabling-or-overriding-the-Vault-interface-hosting
   enableWebVault: true
   # Enable Bitwarden Sends globally  
@@ -55,6 +54,8 @@ vaultwarden:
   #attachmentLimitOrg: 
   ## Limit attachment disk usage per user.
   #attachmentLimitUser: 
+  ## Limit send disk usage per user.
+  #sendLimitUser:
   ## HaveIBeenPwned API Key. Can be purchased at https://haveibeenpwned.com/API/Key.
   #hibpApiKey: 
   ## Number of days to auto-delete trashed items. By default iteams are not auto-deleted.
@@ -63,6 +64,8 @@ vaultwarden:
   #orgEvents: false
   ## Organization event retation. Leave empty to not delete.
   #orgEventsRetention: ""
+  ## Allow users to change their email.
+  #emailChangeAllowed: true
   ## Map of custom environment variables. Use carefully.
   #extraEnv:
   #  IP_HEADER: CF-Connecting-IP
@@ -120,7 +123,7 @@ vaultwarden:
     ## Use existing secret for SMTP authentication. Keys are 'smtp-user' and 'smtp-password'.
     #existingSecret:
     ## Embed images as email attachments
-    #embedImages: false
+    #embedImages: true
 
   ## Enable Yubico OPT authentication. https://github.com/dani-garcia/vaultwarden/wiki/Enabling-Yubikey-OTP-authentication
   yubico:
@@ -154,21 +157,33 @@ vaultwarden:
     ## HTTP code for redirect to external icon service
     #redirectCode: 302
 
+  # Push notifications. https://github.com/dani-garcia/vaultwarden/wiki/Enabling-Mobile-Client-push-notification
+  push:
+    enabled: false
+    ## Installation ID from Bitwarden.
+    #installationId:
+    ## Installation Key from Bitwarden.
+    #installationKey:
+    ## Relay URI
+    #relayUri:
+    ## Identity URI
+    #identityUri: 
+    ## Use existing secret for Push notifications. Keys are 'push-id' and 'push-key'.
+    #existingSecret:
+
 service:
   type: ClusterIP
   httpPort: 80
-  websocketPort: 3012
   externalTrafficPolicy: Cluster
   # loadBalancerIP:
   nodePorts:
     # Choose NodePorts manually
     http: ""
-    websocket: ""
 
 # Kubernetes Ingress
 ingress:
   enabled: false
-  # className: nginx
+  className: ""
   host: ""
   annotations: {}
     # kubernetes.io/ingress.class: nginx
@@ -181,6 +196,8 @@ ingress:
 # Traefik IngressRoute CRD
 ingressRoute:
   enabled: false
+  # Starting on Traefik 2.10, the IngressRoute CRD moved to traefik.io namespace
+  newCRD: false
   # Mandatory to enable IngressRoute
   host: ""
   entrypoints:
@@ -200,12 +217,16 @@ persistence:
   # storageClass: "-"
   ## Use existing Persistent Volume Claim
   # existingClaim:
-
+  ## Annotations to add to the Persistent Volume Claim
+  annotations: {}
 
 # Use custom volume definition. Cannot be used with persistence.
 customVolume: {}
   #hostPath:
   #  path: "/examplefolder/vaultwarden"
+
+# Additional volumes, to be used by sidecars
+#additionalVolumes: []
 
 image:
   pullPolicy: IfNotPresent
@@ -232,6 +253,18 @@ podLabels: {}
 
 # Annotations to add to the Deployment
 deploymentAnnotations: {}
+# Readiness and Liveness probes
+probes: {}
+  #liveness:
+    #timeoutSeconds: 1
+    #periodSeconds: 10
+    #successThreshold: 1
+    #failureThreshold: 3
+  #readiness:
+    #timeoutSeconds: 1
+    #periodSeconds: 10
+    #successThreshold: 1
+    #failureThreshold: 3
 
 # Sidecar containers, add container spec (https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#Container)
 # No templating possible, values need to be hardcoded

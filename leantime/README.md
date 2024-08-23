@@ -26,6 +26,7 @@ internalDatabase.rootPassword | Database root password | Text | Randomly Generat
 internalDatabase.existingSecret | Use existing secret for user, user password and root password. Keys are 'database-user', 'database-password' and 'database-root' | Secret name | Not defined
 internalDatabase.securityContext | Container-level Security Context | Map | Empty
 internalDatabase.resources | Deployment Resources | Map | Empty
+internalDatabase.extraEnv | Inject custom environment variables. Use carefully. | array of env variables | Empty
 internalDatabase.image | See **Image** ||
 internalDatabase.persistence | See **Storage** ||
 |||
@@ -76,23 +77,52 @@ leantime.s3.existingSecret | Use existing secret for S3 key and secret. Keys are
 leantime.smtp.enabled | Enable SMTP support | true / false | false
 leantime.smtp.from | E-mail sender address **(required)** | e-mail | Empty
 leantime.smtp.host | SMTP server **(required)** | hostname | Empty
-leantime.smtp.user | SMTP username **(required)** unless existing secret is used | Text | Empty
-leantime.smtp.password | SMTP password **(required)** unless existing secret is used | Text | Empty
+leantime.smtp.auth | SMTP requires authentication? | true / false | true
+leantime.smtp.user | SMTP username **(required)** unless existing secret is used or auth is disabled | Text | Empty
+leantime.smtp.password | SMTP password **(required)** unless existing secret is used or auth is disabled | Text | Empty
 leantime.smtp.existingSecret | Use existing secret for SMTP username and password. Keys are 'smtp-user' and 'smtp-password' | Secret name | Not defined
 leantime.smtp.port | Use non-standard SMTP port | Number | Default SMTP ports
 leantime.smtp.secureProtocol | Force specific security protocol | tls, ssl or starttls | Auto-detect
 leantime.smtp.autoTLS | Enable TLS automatically if supported by server | true / false | true
+leantime.smtp.insecureSSL | Allow insecure SSL: Don't verify certificate, accept self-signed, etc. | true / false | false
 |||
 leantime.ldap.enabled | Enable LDAP support | true / false | false
-leantime.ldap.host | LDAP server **(required)**  | hostname| Empty
+leantime.ldap.uri | LDAP URI | ldap[s]://hostname:port | Empty
+leantime.ldap.host | LDAP server required if URI is not set | hostname| Empty
 leantime.ldap.port | LDAP listener port | Number | 389
 leantime.ldap.userDN | DN to search users **(required)** | DN (e.g. CN=users,DC=example,DC=com) | Empty
+leantime.ldap.domain | LDAP domain to append on usernames | Domain name (e.g. example.com) | Empty
 leantime.ldap.type | LDAP server type | OL (OpenLDAP) or AD (Active Directory) | OL
 leantime.ldap.keys | Mapping of user fields with LDAP user attributes | JSON | OL attributes (uid, memberof, mail and displayname)
 leantime.ldap.groupRoles | Mapping of user role with LDAP group | JSON | Owner access to "Administrators"
 leantime.ldap.defaultRole | Default role if no mapped group is found | Number | 20 (Editor)
 |||
-leantime.env | custom env variables to be more flexible with custom images | array of env variables | empty
+leantime.oidc.enabled | Enable OIDC support | true / false | false
+leantime.oidc.clientId | Client ID **(required)** unless existing secret is used | Text | Empty
+leantime.oidc.clientSecret | Client Secret **(required)** unless existing secret is used | Text | Empty
+leantime.oidc.providerUrl | Provider URL **(required)** | Text | Empty
+leantime.oidc.createUser | reate Leantime user if it doesn't exist, otherwise fail login | true / false | false
+leantime.oidc.defaultRole | Default role for users created via OIDC | Number | 20 (Editor)
+leantime.oidc.existingSecret | Use existing secret for OIDC client id and secret. Keys are 'oidc-client-id' and 'oidc-client-secret' | Secret name | Not defined
+leantime.oidc.overrides.authUrl | Auth URL | URL | Empty
+leantime.oidc.overrides.tokenUrl | Token URL | URL | Empty
+leantime.oidc.overrides.jwksUrl | JSON Web Key Sets URL | URL | Empty
+leantime.oidc.overrides.userInfoUrl | User Info URL | URL | Empty
+leantime.oidc.overrides.certificateString | Certificate String | Text | Empty
+leantime.oidc.overrides.certificateFile | Certificate File | Text | Empty
+leantime.oidc.overrides.scopes | OIDC Scopes | Text | Empty
+leantime.oidc.overrides.fields.email | Email | Text | Empty
+leantime.oidc.overrides.fields.firstName | First Name | Text | Empty
+leantime.oidc.overrides.fields.lastName | Last Name | Text | Empty
+leantime.oidc.overrides.fields.phone | Phone | Text |Empty
+leantime.oidc.overrides.fields.jobTitle | Job Title | Text | Empty
+leantime.oidc.overrides.fields.jobLevel | Job Level | Text | Empty
+leantime.oidc.overrides.fields.department | Department | Text | Empty
+|||
+leantime.redis.enabled | Enable Redis support | true / false | false
+leantime.redis.uri | Redis URL **(required)**. Include "?auth=" followed by password if authentication is enabled. | tcp://hostname:port | Empty
+|||
+leantime.extraEnv | custom env variables to be more flexible with custom images | array of env variables | Empty
 
 ## **Network**
 
@@ -105,11 +135,13 @@ service.loadBalancerIP | Manually select IP when type is LoadBalancer | IP addre
 service.nodePorts.http | Manually select node port for http | Number | Empty
 |||
 ingress.enabled | Enable Ingress | true / false | false
+ingress.className | Name of the ingress class | Text | Empty
 ingress.host | Ingress hostname **required** | Hostname | Empty
 ingress.annotations | Ingress annotations | Map | Empty
 ingress.tls | Ingress TLS options | Array of Maps | Empty
 |||
 ingressRoute.enabled | Enable Traefik IngressRoute CRD | true / false | false
+ingressRoute.newCRD | Traefik 2.10 and above uses a new CRD namespace (traefik.io) | true / false | false
 ingressRoute.host | Ingress route hostname **required** | Hostname | Empty
 ingressRoute.entrypoints | List of Traefik endpoints | Array of Text | \[websecure\]
 ingressRoute.tls | Ingress route TLS options | Map | Empty
@@ -125,6 +157,8 @@ persistence.size | Size of volume | Size | 1Gi
 persistence.accessMode | Volume access mode | Text | ReadWriteOnce
 persistence.storageClass | Storage Class | Text | Not defined. Use "-" for default class
 persistence.existingClaim | Use existing PVC | Name of PVC | Not defined
+persistence.annotations | PVC annotations | Map | Empty
+additionalVolumes | Additional volumes definitions, to be used by sidecars [Spec](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#volumes) | Array | Empty
 |||
 sessionstorage.enabled | Use persistent volume (PVC) for user sessions. Mounts to /sessions | true / false | false
 sessionstorage.size | Size of volume | Size | 1Gi
@@ -163,6 +197,8 @@ serviceAccount.create | Create Service Account | true / false | false
 serviceAccount.annotations | Annotations service account | Map | Empty
 serviceAccount.name | Service Account name | Text | Generated from template
 deploymentAnnotations | Deployment Annotations | Map | Empty
+probes.liveness | Liveness options [Spec](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes) | Map | Empty
+probes.readiness | Readiness options [Spec](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes) | Map | Empty
 sidecars | Sidecar container definition [Spec](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#Container) | Array | Empty
 podAnnotations | Pod Annotations | Map | Empty
 podLabels | Extra Pod Labels | Map | Empty
@@ -174,6 +210,14 @@ tolerations | Tolerations | Array | Empty
 affinity | Affinity | Map | Empty
 
 ## Upgrade
+
+### From 1.1 to 1.2
+
+Dropped support for Ingress on Kubernetes versions 1.18 or older. [More details](https://kubernetes.io/docs/reference/using-api/deprecation-guide/#ingressclass-v122).
+
+### From 1.0 to 1.1
+
+The internal MariaDB database now defaults to 10.6.x from 10.3.x. On the first run using the new version, it is recommended to add ```MARIADB_AUTO_UPGRADE: 1``` via internalDatabase.extraEnv to run system upgrades.
 
 ### From 0.x to 1.x
 
