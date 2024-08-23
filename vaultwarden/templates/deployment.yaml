@@ -82,8 +82,6 @@ spec:
             {{- end }}
             - name: SHOW_PASSWORD_HINT
               value: {{ .Values.vaultwarden.showPasswordHint | quote }}
-            - name: WEBSOCKET_ENABLED
-              value: {{ .Values.vaultwarden.enableWebsockets | quote }}
             - name: WEB_VAULT_ENABLED
               value: {{ .Values.vaultwarden.enableWebVault | quote }}
             - name: SENDS_ALLOWED
@@ -97,6 +95,10 @@ spec:
             {{- if .Values.vaultwarden.attachmentLimitUser }}
             - name: USER_ATTACHMENT_LIMIT
               value: {{ .Values.vaultwarden.attachmentLimitUser | quote }}
+            {{- end }}
+            {{- if .Values.vaultwarden.sendLimitUser }}
+            - name: USER_SEND_LIMIT
+              value: {{ .Values.vaultwarden.sendLimitUser | quote }}
             {{- end }}
             {{- if .Values.vaultwarden.hibpApiKey }}
             - name: HIBP_API_KEY
@@ -114,6 +116,11 @@ spec:
             - name: EVENTS_DAYS_RETAIN
               value: {{ .Values.vaultwarden.orgEventsRetention | quote }}
             {{- end }}
+            {{- if hasKey .Values.vaultwarden "emailChangeAllowed" }}
+            - name: EMAIL_CHANGE_ALLOWED
+              value: {{ .Values.vaultwarden.emailChangeAllowed | quote }}
+            {{- end }}            
+            
             {{- if .Values.vaultwarden.extraEnv }}
             {{- range $key, $val := .Values.vaultwarden.extraEnv }}
             - name: {{ $key }}
@@ -139,7 +146,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ if .Values.database.existingSecret }}{{ .Values.database.existingSecret }}{{else}}{{ include "vaultwarden.fullname" . }}{{end}}
-                  key: database-url
+                  key: {{ if and .Values.database.existingSecret .Values.database.existingSecretKey }}{{ .Values.database.existingSecretKey }}{{else}}database-url{{end}}
             {{- end }}
             {{- if .Values.vaultwarden.domain }}
             - name: DOMAIN
@@ -274,7 +281,7 @@ spec:
             {{- if .Values.vaultwarden.icons.disableDownload }}
             - name: DISABLE_ICON_DOWNLOAD
               value: {{ .Values.vaultwarden.icons.disableDownload | quote }}
-              {{- if and (not .Values.vaultwarden.icons.cache) (eq .Values.vaultwarden.icons.disableDownload "true") }}
+              {{- if and (not .Values.vaultwarden.icons.cache) (.Values.vaultwarden.icons.disableDownload) }}
             - name: ICON_CACHE_TTL
               value: 0
               {{- end }}
@@ -291,23 +298,44 @@ spec:
             - name: ICON_REDIRECT_CODE
               value: {{ .Values.vaultwarden.icons.redirectCode | quote }}
             {{- end }}
+            {{- if eq .Values.vaultwarden.push.enabled true }}
+            - name: PUSH_INSTALLATION_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.vaultwarden.push.existingSecret | default (include "vaultwarden.fullname" .) }}
+                  key: push-id
+            - name: PUSH_INSTALLATION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.vaultwarden.push.existingSecret | default (include "vaultwarden.fullname" .) }}
+                  key: push-key
+            {{- if hasKey .Values.vaultwarden.push "relayUri" }}
+            - name: PUSH_RELAY_URI
+              value: {{ .Values.vaultwarden.push.relayUri | quote }}
+            {{- end }}
+            {{- if hasKey .Values.vaultwarden.push "identityUri" }}
+            - name: PUSH_IDENTITY_URI
+              value: {{ .Values.vaultwarden.push.identityUri | quote }}
+            {{- end }}
+            {{- end }}{{/* Push */}}
           ports:
             - name: http
               containerPort: 8080
               protocol: TCP
-          {{- if .Values.vaultwarden.enableWebsockets }}
-            - name: websocket
-              containerPort: 3012
-              protocol: TCP
-          {{- end }}
           livenessProbe:
             httpGet:
               path: {{ include "vaultwarden.domainSubPath" . }}
               port: http
+            {{- if .Values.probes.liveness }}
+            {{- toYaml .Values.probes.liveness | nindent 12 }}
+            {{- end }}
           readinessProbe:
             httpGet:
               path: {{ include "vaultwarden.domainSubPath" . }}
               port: http
+            {{- if .Values.probes.readiness }}
+            {{- toYaml .Values.probes.readiness | nindent 12 }}
+            {{- end }}
           volumeMounts:
           - name: {{ include "vaultwarden.fullname" . }}
             mountPath: /data
@@ -329,6 +357,9 @@ spec:
         {{- else }}
         emptyDir: {}
         {{- end }}
+      {{- if .Values.additionalVolumes }}
+        {{- toYaml .Values.additionalVolumes | nindent 6 }}
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

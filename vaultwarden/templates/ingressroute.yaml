@@ -1,7 +1,11 @@
 {{- if .Values.ingressRoute.enabled -}}
 {{- $fullName := include "vaultwarden.fullname" . -}}
 {{- $host := (required "Host required for IngressRoute" .Values.ingressRoute.host ) -}}
+{{- if .Values.ingressRoute.newCRD }}
+apiVersion: traefik.io/v1alpha1
+{{- else }}
 apiVersion: traefik.containo.us/v1alpha1
+{{- end }}
 kind: IngressRoute
 metadata:
   name: {{ $fullName }}
@@ -13,17 +17,6 @@ spec:
     - {{ . | quote }}
   {{- end }}
   routes:
-  {{- if .Values.vaultwarden.enableWebsockets }}
-  - match: Host(`{{ $host }}`) && PathPrefix(`/notifications/hub`)
-    kind: Rule
-    {{- if .Values.ingressRoute.middlewares }}
-    middlewares:
-      {{- toYaml .Values.ingressRoute.middlewares | nindent 6 }}
-    {{- end }}
-    services:
-    - name: {{ $fullName }} 
-      port: {{ .Values.service.websocketPort }}
-  {{- end }}
   - match: Host(`{{ $host }}`)
     kind: Rule
     {{- if .Values.ingressRoute.middlewares }}
